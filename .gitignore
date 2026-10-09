@@ -1,4 +1,4 @@
-# Generated output: rebuild with build_castle.py / print_castle.py
+# Generated output: each project rebuilds it with its own scripts
 *.blend
 *.blend1
 *.blend@
@@ -6,4 +6,4 @@
 *.stl
 *.3mf
 *.gcode
-print/bambu/
+**/print/bambu/
