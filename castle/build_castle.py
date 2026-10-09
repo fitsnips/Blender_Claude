@@ -37,7 +37,7 @@ def _nodes(mat):
 
 
 def mat_noise(name, dark, light, rough=0.9, scale=4.0, bump=0.4, voronoi=True):
-    """Principled material with noise-driven color variation and blocky bump."""
+    """Principled material with noise-driven colour variation and blocky bump."""
     mat = bpy.data.materials.new(name)
     nodes, links = _nodes(mat)
     bsdf = nodes.get("Principled BSDF")
@@ -897,7 +897,7 @@ try:
     sky.sun_rotation = math.radians(215)
     wl.new(sky.outputs["Color"], bg.inputs["Color"])
     bg.inputs["Strength"].default_value = 0.2
-except Exception as exc:  # fall back to a flat sky color
+except Exception as exc:  # fall back to a flat sky colour
     print("Sky texture unavailable:", exc)
     bg.inputs["Color"].default_value = (0.45, 0.6, 0.85, 1)
     bg.inputs["Strength"].default_value = 1.0
