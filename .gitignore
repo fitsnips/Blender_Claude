@@ -7,3 +7,7 @@
 *.3mf
 *.gcode
 **/print/bambu/
+
+# ...except ready-to-print kits, committed so they can be downloaded without Blender
+!castle/print/*.stl
+!castle/print/*.3mf

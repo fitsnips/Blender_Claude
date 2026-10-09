@@ -1,5 +1,9 @@
 # Castle print kit: Bambu Lab P1S, single colour, 1:210
 
+Ready to print, no Blender needed. This folder has the Bambu Studio project
+`castle_print_1-210.3mf`, plus the same parts as separate STLs for other slicers:
+`castle_base.stl`, `keep_half_A.stl`, `keep_half_B.stl` and `roofs.stl`.
+
 Regenerate with `blender --background --python print_castle.py`. Add `-- --scale N` for another
 scale, or `-- --stl` to also write each part as a separate STL for other slicers.
 
