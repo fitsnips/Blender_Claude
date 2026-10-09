@@ -2,14 +2,16 @@
 
 Procedural 3D models built in [Blender](https://www.blender.org/) with Python scripts written
 together with Claude. Each project lives in its own directory and is rebuilt from scratch by its
-scripts. The repository holds the code and documentation, plus ready-to-print files where a
-project has them. Renders and `.blend` files are generated output and are not committed.
+scripts. The repository holds the code and documentation, plus ready-to-print files and
+compressed preview images where a project has them. Full renders and `.blend` files are
+generated output and are not committed.
 
 ## Projects
 
 | Project | Description |
 |---|---|
 | [castle](castle/) | A medieval castle with hollow towers, a keep, open arrow slits, walkable wall-walks and a moat. Includes a ready-to-print kit for the Bambu Lab P1S ([3MF and STLs](castle/print/)). |
+| [dragon](dragon/) | A snarling dragon-head bust with real scale relief, swept-back horns, a spiked mane and chevron belly plates. It is rendered in colour and as an ink drawing in the style of the illustration it is based on. |
 
 ## Requirements
 
@@ -29,4 +31,5 @@ project has them. Renders and `.blend` files are generated output and are not co
 
 Generated output (`*.blend`, `*.png`, `*.stl`, `*.3mf`, `*.gcode`) is ignored by the top-level
 `.gitignore`. If you add a new output type, add it there too. To publish print files, add a `!`
-exception for them in `.gitignore`, as `castle/print/` does.
+exception for them in `.gitignore`, as `castle/print/` does. For README images, save compressed
+JPEGs in the project's `images/` folder, as `dragon/` does.
