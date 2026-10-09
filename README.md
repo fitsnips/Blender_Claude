@@ -2,14 +2,14 @@
 
 Procedural 3D models built in [Blender](https://www.blender.org/) with Python scripts written
 together with Claude. Each project lives in its own directory and is rebuilt from scratch by its
-scripts, so the repository holds code and documentation only. Renders, `.blend` files and print
-files are generated output and are not committed.
+scripts. The repository holds the code and documentation, plus ready-to-print files where a
+project has them. Renders and `.blend` files are generated output and are not committed.
 
 ## Projects
 
 | Project | Description |
 |---|---|
-| [castle](castle/) | A medieval castle with hollow towers, a keep, open arrow slits, walkable wall-walks and a moat. It also exports a single-colour 3D-print kit for the Bambu Lab P1S. |
+| [castle](castle/) | A medieval castle with hollow towers, a keep, open arrow slits, walkable wall-walks and a moat. Includes a ready-to-print kit for the Bambu Lab P1S ([3MF and STLs](castle/print/)). |
 
 ## Requirements
 
@@ -28,4 +28,5 @@ files are generated output and are not committed.
 4. Add a row to the Projects table above.
 
 Generated output (`*.blend`, `*.png`, `*.stl`, `*.3mf`, `*.gcode`) is ignored by the top-level
-`.gitignore`. If you add a new output type, add it there too.
+`.gitignore`. If you add a new output type, add it there too. To publish print files, add a `!`
+exception for them in `.gitignore`, as `castle/print/` does.

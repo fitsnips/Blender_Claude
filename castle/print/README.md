@@ -1,5 +1,9 @@
 # Castle print kit: Bambu Lab P1S, single colour, 1:210
 
+Ready to print, no Blender needed. This folder has the Bambu Studio project
+`castle_print_1-210.3mf`, plus the same parts as separate STLs for other slicers:
+`castle_base.stl`, `keep_half_A.stl`, `keep_half_B.stl` and `roofs.stl`.
+
 Regenerate with `blender --background --python print_castle.py`. Add `-- --scale N` for another
 scale, or `-- --stl` to also write each part as a separate STL for other slicers.
 
@@ -9,10 +13,13 @@ settings below are stored in the file.
 
 | Plate | Part | Size (mm) | Orientation | Settings stored in the file | Time | PLA |
 |---|---|---|---|---|---|---|
-| 1 | `castle_base` | 229.5 × 230.5 × 88.6 | flat base down | no brim, no supports | 15 h 27 m | 384 g |
-| 2 | `keep_half_A`, `keep_half_B` | 114.3 × 89.5 × 44.8 each | cut face down | tree supports | 14 h 0 m (whole plate) | 211 g (whole plate) |
+| 1 | `castle_base` | 229.5 × 230.5 × 88.6 | flat base down | no brim, no supports | 15 h 17 m | 371 g |
+| 2 | `keep_half_A`, `keep_half_B` | 114.3 × 89.5 × 44.8 each | cut face down | tree supports | 14 h 6 m (whole plate) | 211 g (whole plate) |
 | 2 | `roofs` (8 roofs) | 125.7 × 82.4 × 28.6 | upright | none | | |
-| | **Total** | | | | **≈ 29.4 h** | **≈ 595 g** |
+| | **Total** | | | | **≈ 29.4 h** | **≈ 582 g** |
+
+The base plate follows the castle's outline: a strip 2 mm wide outside the walls, with round
+pads under the towers. Its overall size is set by the corner and gate towers.
 
 Times and weights are Bambu Studio 2.8 estimates for a Bambu Lab P1S 0.4 nozzle with the
 "0.12mm Fine" process and Bambu PLA Basic.
