@@ -1,0 +1,9 @@
+# Generated output: rebuild with build_castle.py / print_castle.py
+*.blend
+*.blend1
+*.blend@
+*.png
+*.stl
+*.3mf
+*.gcode
+print/bambu/
