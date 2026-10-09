@@ -15,7 +15,7 @@ blender --background --python build_castle.py -- --render
 # build castle.blend only
 blender --background --python build_castle.py
 
-# export the 3D-print kit (STL files in print/)
+# export the 3D-print kit (one Bambu Studio 3MF in print/)
 blender --background --python print_castle.py
 ```
 
@@ -24,7 +24,7 @@ blender --background --python print_castle.py
 | `castle.blend` | the full scene, including cross-section cameras named `section_*` |
 | `castle.png` | exterior render, 1920 × 1080 |
 | `section_keep.png`, `section_towers.png`, `section_gate.png` | cut-away views that show the interiors |
-| `print/*.stl` | 3D-print kit; see [print/README.md](print/README.md) |
+| `print/castle_print_1-210.3mf` | 3D-print kit: one Bambu Studio project with two plates; see [print/README.md](print/README.md) |
 
 ## What is modelled
 

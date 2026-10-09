@@ -1,21 +1,25 @@
-"""Export a single-colour, 3D-printable castle as STL files (default 1:210).
+"""Export a single-colour, 3D-printable castle as one Bambu Studio 3MF (default 1:210).
 
 Usage:
-    blender --background --python print_castle.py [-- --scale 210]
+    blender --background --python print_castle.py [-- --scale 210] [--stl]
 
 Builds the --print variant of build_castle.py, strips parts too fine to print,
 merges each printable piece into one watertight solid and writes, to print/:
 
-    castle_base.stl    walls, towers, gatehouse, halls and courtyard on a base plate
-    keep_half_A.stl    keep cut in half through its centre, cut face down
-    keep_half_B.stl    (the two halves show the floors inside; glue or display apart)
-    roofs.stl          8 removable cone roofs (4 corner towers + 4 keep turrets)
-    print_layout.blend all parts as exported, for inspection
-    print_preview.png  render of the parts
+    castle_print_1-210.3mf  one project, two plates, ready to slice in Bambu Studio:
+        plate 1  castle_base   walls, towers, gatehouse, halls and courtyard on a base plate
+        plate 2  keep_half_A   keep cut in half through its centre, cut face down
+                 keep_half_B   (the two halves show the floors inside; glue or display apart)
+                 roofs         8 removable cone roofs (4 corner towers + 4 keep turrets)
+    print_layout.blend      all parts as exported, for inspection
+    print_preview.png       render of the parts
+
+--stl also writes each part as its own STL, for other slicers.
 """
 import math
 import os
 import sys
+import zipfile
 
 import bmesh
 import bpy
@@ -28,6 +32,8 @@ args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 SCALE = float(args[args.index("--scale") + 1]) if "--scale" in args else 210.0   # 1:210 keeps the base clear of the P1S purge-chute corner
 MM_PER_M = 1000.0 / SCALE
 MIN_FEATURE_MM = 0.8          # two 0.4 mm extrusion lines
+# keep halves lie on their sides: tree supports carry the turret tops
+KEEP_SUPPORT = {"enable_support": "1", "support_type": "tree(auto)"}
 SOLVERS = ("EXACT", "MANIFOLD") if "--exact" in args else ("MANIFOLD", "EXACT")
 
 # ---------------------------------------------------------------- build print variant
@@ -252,13 +258,93 @@ report.append(("roofs", [(max(v[i] for v in vs) - min(v[i] for v in vs)) * MM_PE
                non_manifold(roof_plate)))
 parts["roofs"] = roof_plate
 
-for name, obj in parts.items():
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
-    path = os.path.join(OUT, name + ".stl")
-    bpy.ops.wm.stl_export(filepath=path, export_selected_objects=True,
-                          global_scale=MM_PER_M, ascii_format=False)
+# Bambu Studio project: one 3MF, two plates, per-object print settings
+PLATE_STRIDE = 256.0 * 1.2      # Bambu lays plates out on a grid with a 20% gap
+PLATES = [
+    ("Castle base", [("castle_base", (137.0, 128.0), {"brim_type": "no_brim"})]),
+    ("Keep and roofs", [
+        ("keep_half_A", (78.0, 205.0), KEEP_SUPPORT),
+        ("keep_half_B", (196.0, 205.0), KEEP_SUPPORT),
+        ("roofs", (137.0, 80.0), {}),
+    ]),
+]
+
+
+def mesh_xml(obj):
+    """Triangle mesh in millimetres, centred on x/y with its base at z = 0."""
+    me = obj.data
+    me.calc_loop_triangles()
+    co = [v.co * MM_PER_M for v in me.vertices]
+    cx = (min(c.x for c in co) + max(c.x for c in co)) / 2
+    cy = (min(c.y for c in co) + max(c.y for c in co)) / 2
+    z0 = min(c.z for c in co)
+    verts = "".join(f'<vertex x="{c.x - cx:.4f}" y="{c.y - cy:.4f}" z="{c.z - z0:.4f}"/>'
+                    for c in co)
+    tris = "".join(f'<triangle v1="{t.vertices[0]}" v2="{t.vertices[1]}" '
+                   f'v3="{t.vertices[2]}"/>' for t in me.loop_triangles)
+    return f"<mesh><vertices>{verts}</vertices><triangles>{tris}</triangles></mesh>"
+
+
+def write_3mf(path):
+    objects, items, settings, plates = [], [], [], []
+    oid = 0
+    for p, (plate_name, entries) in enumerate(PLATES):
+        ox, oy = (p % 2) * PLATE_STRIDE, -(p // 2) * PLATE_STRIDE
+        instances = []
+        for name, (x, y), overrides in entries:
+            oid += 1
+            objects.append(f'<object id="{oid}" type="model" name="{name}">'
+                           f'{mesh_xml(parts[name])}</object>')
+            items.append(f'<item objectid="{oid}" '
+                         f'transform="1 0 0 0 1 0 0 0 1 {x + ox:.3f} {y + oy:.3f} 0" '
+                         f'printable="1"/>')
+            meta = "".join(f'<metadata key="{k}" value="{v}"/>'
+                           for k, v in {"name": name, "extruder": "1", **overrides}.items())
+            settings.append(f'<object id="{oid}">{meta}<part id="1" subtype="normal_part">'
+                            f'<metadata key="name" value="{name}"/>'
+                            f'<metadata key="matrix" '
+                            f'value="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"/></part></object>')
+            instances.append(f'<model_instance><metadata key="object_id" value="{oid}"/>'
+                             f'<metadata key="instance_id" value="0"/></model_instance>')
+        plates.append(f'<plate><metadata key="plater_id" value="{p + 1}"/>'
+                      f'<metadata key="plater_name" value="{plate_name}"/>'
+                      f'<metadata key="locked" value="false"/>{"".join(instances)}</plate>')
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    model = (xml + '<model unit="millimeter" xml:lang="en-US" '
+             'xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">'
+             f'<metadata name="Title">Castle print kit 1:{SCALE:g}</metadata>'
+             f'<resources>{"".join(objects)}</resources>'
+             f'<build>{"".join(items)}</build></model>')
+    config = xml + "<config>" + "".join(settings) + "".join(plates) + "</config>"
+    content_types = (
+        xml + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+        '<Default Extension="rels" '
+        'ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+        '<Default Extension="model" '
+        'ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>'
+        '<Default Extension="config" ContentType="text/xml"/></Types>')
+    rels = (xml + '<Relationships '
+            'xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Target="/3D/3dmodel.model" Id="rel-1" '
+            'Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>'
+            '</Relationships>')
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("[Content_Types].xml", content_types)
+        z.writestr("_rels/.rels", rels)
+        z.writestr("3D/3dmodel.model", model)
+        z.writestr("Metadata/model_settings.config", config)
     print("Exported", path)
+
+
+write_3mf(os.path.join(OUT, f"castle_print_1-{SCALE:g}.3mf"))
+if "--stl" in args:
+    for name, obj in parts.items():
+        bpy.ops.object.select_all(action="DESELECT")
+        obj.select_set(True)
+        path = os.path.join(OUT, name + ".stl")
+        bpy.ops.wm.stl_export(filepath=path, export_selected_objects=True,
+                              global_scale=MM_PER_M, ascii_format=False)
+        print("Exported", path)
 
 print(f"\n=== Print parts at 1:{SCALE:g} (Bambu Lab P1S: 256 x 256 x 256 mm bed, "
       f"18 x 28 mm purge-chute corner excluded) ===")

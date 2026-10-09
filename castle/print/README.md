@@ -1,35 +1,46 @@
-# Castle print kit — Bambu Lab P1S, single colour, 1:210
+# Castle print kit: Bambu Lab P1S, single colour, 1:210
 
-Regenerate with: `blender --background --python print_castle.py` (add `-- --scale N` for another scale).
+Regenerate with `blender --background --python print_castle.py`. Add `-- --scale N` for another
+scale, or `-- --stl` to also write each part as a separate STL for other slicers.
 
-| Part | Size (mm) | Orientation | Supports | Time | PLA |
-|---|---|---|---|---|---|
-| `castle_base.stl` | 229.5 × 230.5 × 88.6 | as exported (flat base down) | **none** | 15 h 28 m | 384 g |
-| `keep_half_A.stl` | 114.3 × 89.5 × 44.8 | as exported (cut face down) | tree, everywhere | 6 h 21 m | 97 g |
-| `keep_half_B.stl` | 114.3 × 89.5 × 44.8 | as exported (cut face down) | tree, everywhere | 6 h 24 m | 97 g |
-| `roofs.stl` (8 roofs) | 125.7 × 82.4 × 28.6 | as exported (upright) | none | 1 h 18 m | 18 g |
-| **Total** | | | | **≈ 29.5 h** | **≈ 595 g** |
+The output is one Bambu Studio project, `castle_print_1-210.3mf`, with two plates. Open it, pick
+the Bambu Lab P1S 0.4 nozzle printer and a PLA filament, then slice all plates. The per-object
+settings below are stored in the file.
 
-Times and weights are Bambu Studio 2.8 estimates with: Bambu Lab P1S 0.4 nozzle,
-"0.12mm Fine" process, Bambu PLA Basic. `bambu/*.3mf` are those sliced projects.
+| Plate | Part | Size (mm) | Orientation | Settings stored in the file | Time | PLA |
+|---|---|---|---|---|---|---|
+| 1 | `castle_base` | 229.5 × 230.5 × 88.6 | flat base down | no brim, no supports | 15 h 27 m | 384 g |
+| 2 | `keep_half_A`, `keep_half_B` | 114.3 × 89.5 × 44.8 each | cut face down | tree supports | 14 h 0 m (whole plate) | 211 g (whole plate) |
+| 2 | `roofs` (8 roofs) | 125.7 × 82.4 × 28.6 | upright | none | | |
+| | **Total** | | | | **≈ 29.4 h** | **≈ 595 g** |
+
+Times and weights are Bambu Studio 2.8 estimates for a Bambu Lab P1S 0.4 nozzle with the
+"0.12mm Fine" process and Bambu PLA Basic.
 
 ## Slicer notes
-- **Base: brim off.** At 230 mm it only just clears the P1S purge-chute corner
-  (18 × 28 mm, front-left); a brim pushes it off the plate. Use a glue stick / clean PEI.
-- **Base: no supports.** Every overhang is a bridge or a 45° slope (tower tops are
-  vaulted, corbels bevelled). If you do enable supports, set *On build plate only*,
-  or supports will be sealed inside the hollow towers.
+- **Base: no brim.** At 230 mm the base only just clears the P1S purge-chute corner
+  (18 × 28 mm, front-left), and a brim would push it off the plate. Use a glue stick or a
+  clean PEI plate instead.
+- **Base: no supports.** Every overhang is a bridge or a 45° slope: tower tops are vaulted and
+  corbels are bevelled. If you do enable supports, set *On build plate only*, or supports will
+  be sealed inside the hollow towers.
 - **Keep halves:** tree supports carry the turret tops, which hang out sideways in this
   orientation. The interiors open onto the plate, so anything printed inside comes out.
-- 0.12 mm layers keep the merlons and 1.4 mm arrow slits crisp; 0.20 mm takes about 40% less time.
+- **Don't auto-arrange plate 1:** the base is placed to clear the excluded corner, and
+  re-arranging can move it off the plate.
+- 0.12 mm layers keep the merlons and 1.4 mm arrow slits crisp. 0.20 mm layers take about 40%
+  less time.
 
 ## Assembly
-- Glue the keep halves face to face (or display them apart as a cutaway) and stand the
-  keep behind the stone steps in the courtyard.
-- The roofs drop onto the corner-tower drums (4 larger) and keep turrets (4 smaller).
-  Leave them unglued to lift off and look inside.
+- Glue the keep halves face to face, or display them apart as a cutaway. Stand the keep behind
+  the stone steps in the courtyard.
+- The roofs drop onto the corner-tower drums (the 4 larger roofs) and the keep turrets (the 4
+  smaller ones). Leave them unglued so they lift off to show the inside.
 
 ## Changed from the render model for printing
-Removed: flags, ladders, chains, torches, trees, moat, drawbridge, keep door leaf, gate paving.
-Thickened: arrow slits 1.4 mm, floors 1.2 mm, portcullis bars 1.2 mm (lowered onto the floor), well posts.
-Reshaped: tower top ledges bevelled at 45°, tower ceilings vaulted at 45°, hall roofs solid without eaves.
+- **Removed:** flags, ladders, chains, torches, trees, moat, drawbridge, keep door leaf and gate
+  paving.
+- **Thickened:** arrow slits to 1.4 mm, floors to 1.2 mm, portcullis bars to 1.2 mm (lowered
+  onto the floor) and well posts.
+- **Reshaped:** tower-top ledges bevelled at 45°, tower ceilings vaulted at 45°, and hall roofs
+  solid without eaves.
