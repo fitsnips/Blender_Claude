@@ -43,7 +43,6 @@ castle = {"__file__": src, "__name__": "__main__"}
 exec(compile(open(src).read(), src, "exec"), castle)
 scene = bpy.context.scene
 KX, KY = castle["KX"], castle["KY"]
-ISLAND = castle["MOAT_IN"]
 
 # ---------------------------------------------------------------- strip unprintable parts
 DROP = ("Ground", "Water", "MoatBed", "Courtyard", "Road", "Drawbridge", "Trunk",
@@ -183,11 +182,14 @@ for o in list(bpy.data.objects):
     else:
         groups["base"].append(o)
 
-# base plate under the island: 3 mm at 1:200
+# base plate hugging the castle: a square just outside the curtain walls, plus
+# round pads under the towers and a pad under the gatehouse front, 3 mm thick
 # (its top sits 5 cm above z=0 so everything standing on the ground bonds into it)
-bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, -0.275))
+PLATE_Z, PLATE_T, MARGIN = -0.275, 0.65, 0.4
+half = castle["WALL"] + castle["WALL_T"] / 2 + MARGIN
+bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, PLATE_Z))
 plate = bpy.context.active_object
-plate.scale = (2 * ISLAND, 2 * ISLAND, 0.65)
+plate.scale = (2 * half, 2 * half, PLATE_T)
 bpy.ops.object.transform_apply(scale=True)
 # a 1 m grid on the plate keeps every face small; one huge top face pierced by
 # dozens of footprints does not triangulate cleanly after the union
@@ -195,11 +197,29 @@ _bm = bmesh.new()
 _bm.from_mesh(plate.data)
 bmesh.ops.subdivide_edges(_bm, edges=[e for e in _bm.edges
                                       if abs(e.verts[0].co.z - e.verts[1].co.z) < 1e-6],
-                          cuts=int(2 * ISLAND) - 1, use_grid_fill=True)
+                          cuts=int(2 * half) - 1, use_grid_fill=True)
 _bm.to_mesh(plate.data)
 _bm.free()
 plate.name = "BasePlate"
-groups["base"].insert(0, plate)
+pads = []
+for sx in (-1, 1):
+    for sy in (-1, 1):
+        bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=castle["TOWER_R"] + MARGIN,
+                                            depth=PLATE_T,
+                                            location=(sx * castle["WALL"], sy * castle["WALL"],
+                                                      PLATE_Z))
+        pads.append(bpy.context.active_object)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=castle["GT_R"] + MARGIN,
+                                        depth=PLATE_T,
+                                        location=(sx * 5.2, castle["GT_Y"], PLATE_Z))
+    pads.append(bpy.context.active_object)
+gh_front = castle["GH_CY"] - 3.5 - MARGIN
+bpy.ops.mesh.primitive_cube_add(size=1, location=(0, (gh_front - half) / 2 + 0.5, PLATE_Z))
+pad = bpy.context.active_object
+pad.scale = (9 + 2 * MARGIN, -gh_front - (half - 1.0), PLATE_T)
+bpy.ops.object.transform_apply(scale=True)
+pads.append(pad)
+groups["base"][:0] = [plate] + pads
 
 parts = {}
 print("Merging castle base ...")
