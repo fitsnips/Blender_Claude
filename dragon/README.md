@@ -27,9 +27,28 @@ blender --background --python build_dragon.py -- --preview
 
 # build dragon.blend only
 blender --background --python build_dragon.py
+
+# validate, render close-ups of the mouth, chin, throat, base and horns into check/,
+# and exit with an error if anything fails (~1 min); run before committing changes
+blender --background --python build_dragon.py -- --check
 ```
 
 The README images in `images/` are compressed copies of the two renders.
+
+## Validation
+
+Every build checks the geometry and prints a report, because small defects don't show up in
+full-bust renders:
+
+- **Nothing floats:** each separate piece (tooth, spike, horn, plate, eye) must touch or sink
+  into the head and neck. Floating pieces are listed with their position.
+- **Nothing is lost:** each joined part (teeth, horns, plates, belly plates) must still contain
+  as many pieces as were made.
+- **Nothing passes through the plinth:** only the plinth may go below its top surface, the
+  bust's flat underside must rest within its rim, and parts that would reach it are not made.
+
+Teeth and spikes are rooted on the real skin: teeth by casting a ray from the mouth gap to the
+gum, and spikes by moving their base to the nearest point on the skin. Both sink 0.35 units in.
 
 ## How it is built
 

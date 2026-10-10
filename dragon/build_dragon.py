@@ -19,6 +19,7 @@ import sys
 import bmesh
 import bpy
 from mathutils import Matrix, Vector
+from mathutils.bvhtree import BVHTree
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -112,7 +113,7 @@ PLATE = mat_scales("Plates", (0.03, 0.05, 0.04), (0.08, 0.14, 0.10), rough=0.3, 
                    sheen=0.4)
 HORN = mat_horn("Horn")
 TOOTH = mat_flat("Tooth", (0.85, 0.80, 0.66), rough=0.3)
-MOUTH = mat_flat("Mouth", (0.18, 0.02, 0.02), rough=0.6)
+MOUTH = mat_flat("Mouth", (0.05, 0.008, 0.008), rough=0.85)   # reads as a dark cavity
 EYE = mat_flat("Eye", (0.9, 0.5, 0.05), rough=0.1, emission=(1.0, 0.45, 0.02), strength=4.0)
 PUPIL = mat_flat("Pupil", (0.0, 0.0, 0.0), rough=0.1)
 STONE = mat_flat("Plinth", (0.08, 0.075, 0.07), rough=0.7)
@@ -304,27 +305,61 @@ for sy in (1, -1):
     ellipsoid("Eyelid_low", (7.1, 2.7 * sy, 18.92), (0.95, 0.55, 0.32), SKIN, rot=(0, -0.15, 0))
 
 # ---------------------------------------------------------------- mouth and teeth
-ellipsoid("Mouth", (8.4, 0, 13.4), (4.8, 1.55, 0.9), MOUTH, rot=(0, 0.52, 0))
+MOUTH_C, MOUTH_TILT = Vector((8.4, 0, 13.4)), 0.52
+# dark mouth interior, narrow enough to stay inside the jaws
+ellipsoid("Mouth", tuple(MOUTH_C), (4.6, 0.95, 0.85), MOUTH, rot=(0, MOUTH_TILT, 0))
+# Teeth are rooted on the real jaw surface: from a point in the mouth gap, cast
+# a ray up to the upper gum (or down to the lower), and sink the root into it.
+_bm = bmesh.new()
+_bm.from_mesh(body.data)
+_bm.transform(body.matrix_world)          # the body keeps an origin offset; rays are in world space
+gum = BVHTree.FromBMesh(_bm)
+_bm.free()
+along = Vector((math.cos(MOUTH_TILT), 0, -math.sin(MOUTH_TILT)))   # back of mouth -> snout tip
+up = Vector((math.sin(MOUTH_TILT), 0, math.cos(MOUTH_TILT)))       # towards the upper jaw
+ROOT_DEPTH = 0.35
+
+
+def rooted(name, p0, p1, p2, *args, **kw):
+    """A spike whose base is moved onto the nearest point of the skin and sunk
+    ROOT_DEPTH into it; the whole spike shifts with it, so its shape is kept."""
+    p0, p1, p2 = Vector(p0), Vector(p1), Vector(p2)
+    loc, normal, _, _ = gum.find_nearest(p0)
+    shift = (loc - normal * ROOT_DEPTH) - p0
+    p0, p1, p2 = p0 + shift, p1 + shift, p2 + shift
+    if min(p.z for p in bezier(p0, p1, p2, 12)) - args[0] < 0.2:
+        return None                   # would reach down into the plinth
+    return spike(name, p0, p1, p2, *args, **kw)
+
+
+def rooted_tooth(u, lateral, toward, length, radius):
+    """Tooth whose root is embedded in the gum the ray from the mouth gap hits;
+    None if the start point is inside the flesh (corner of the mouth)."""
+    start = MOUTH_C + along * u + Vector((0, lateral, 0))
+    hit, normal, _, _ = gum.ray_cast(start, toward, 4.0)
+    if hit is None or normal.dot(toward) > 0:
+        return None
+    root = hit + toward * ROOT_DEPTH
+    tip = hit - toward * length + along * 0.18 * length
+    mid = hit - toward * length * 0.5 + along * 0.04 * length
+    return spike("Tooth", root, mid, tip, radius, TOOTH, flat=0.8, n=8, ring=10)
+
+
 teeth = []
 for sy in (1, -1):
-    for i in range(9):
+    for i in range(9):                    # upper row, fang at i == 6
         s = i / 8
-        x = 5.6 + 7.4 * s
-        z = 14.5 - 2.0 * s - 0.3 * s * s
-        y = (1.85 - 0.95 * s) * sy
-        length = 0.75 + 0.35 * math.sin(math.pi * s) + (0.9 if i == 6 else 0)
-        teeth.append(spike("Tooth", (x, y, z + 0.4), (x + 0.1, y, z - length * 0.5),
-                           (x + 0.25, y * 0.97, z - length), 0.22 + 0.06 * (i == 6), TOOTH,
-                           flat=0.8, n=8, ring=10))
-    for i in range(8):
+        length = 0.8 + 0.35 * math.sin(math.pi * s) + (0.9 if i == 6 else 0)
+        teeth.append(rooted_tooth(-3.2 + 7.6 * s, (1.5 - 0.75 * s) * sy, up, length,
+                                  0.22 + 0.06 * (i == 6)))
+    for i in range(8):                    # lower row, fang at i == 5
         s = i / 7
-        x = 5.8 + 6.4 * s
-        z = 11.9 - 2.4 * s
-        y = (1.55 - 0.75 * s) * sy
-        length = 0.6 + 0.3 * math.sin(math.pi * s) + (0.7 if i == 5 else 0)
-        teeth.append(spike("Tooth", (x, y, z - 0.4), (x + 0.1, y, z + length * 0.5),
-                           (x + 0.2, y * 0.97, z + length), 0.2 + 0.05 * (i == 5), TOOTH,
-                           flat=0.8, n=8, ring=10))
+        length = 0.65 + 0.3 * math.sin(math.pi * s) + (0.7 if i == 5 else 0)
+        teeth.append(rooted_tooth(-2.8 + 6.8 * s, (1.25 - 0.6 * s) * sy, -up, length,
+                                  0.2 + 0.05 * (i == 5)))
+teeth = [t for t in teeth if t]
+print(f"Teeth rooted in the jaw: {len(teeth)} of 34")
+EXPECTED = {"Teeth": len(teeth)}       # pieces each joined part must still contain
 join(teeth, "Teeth")
 
 # ---------------------------------------------------------------- horns
@@ -333,6 +368,7 @@ horns += mirrored(spike, "Horn_main", 3, (1.4, 2.0, 21.6), (-0.2, 2.8, 28.4), (-
                   1.5, HORN, power=0.85, n=20)
 horns += mirrored(spike, "Horn_back", 3, (-0.4, 2.4, 20.4), (-4.6, 3.0, 23.6), (-10.2, 3.4, 24.6),
                   1.0, HORN, power=0.85, n=18)
+EXPECTED["Horns"] = len(horns)
 join(horns, "Horns")
 
 # ---------------------------------------------------------------- brow plates
@@ -343,7 +379,7 @@ for sy in (1, -1):
         bx, bz = 8.6 - 5.2 * s, 20.9 + 1.9 * s
         y = (2.35 + 0.25 * s) * sy
         L = 1.1 + 0.9 * s
-        plates.append(spike("BrowPlate", (bx, y, bz), (bx - 0.4 * L, y * 1.05, bz + 0.7 * L),
+        plates.append(rooted("BrowPlate", (bx, y, bz), (bx - 0.4 * L, y * 1.05, bz + 0.7 * L),
                             (bx - 1.0 * L, y * 1.08, bz + 1.0 * L), 0.55, PLATE, flat=0.3,
                             n=8, ring=10))
 
@@ -361,7 +397,7 @@ for i, p in enumerate(crest_line):
     out = Vector((nxt.z, 0, -nxt.x)).normalized() * -1
     back = nxt.normalized()
     tip = p + out * size + back * size * 0.75
-    plates.append(spike("Crest", p - out * 0.4, p + out * size * 0.45 + back * size * 0.1, tip,
+    plates.append(rooted("Crest", p - out * 0.4, p + out * size * 0.45 + back * size * 0.1, tip,
                         0.55 * size, PLATE, flat=0.16, n=10, ring=10, power=1.2))
 
 # ---------------------------------------------------------------- mane and frill
@@ -373,7 +409,7 @@ for sy in (1, -1):
         L = 4.6 + 1.8 * math.sin(math.pi * s) + random.uniform(-0.5, 0.5)
         d = Vector((-1.0, 0.32 * sy, -0.2 - 0.55 * s)).normalized()
         bend = Vector((0, 0, 0.9 - 0.4 * s))
-        plates.append(spike("Frill", base, base + d * L * 0.5 + bend, base + d * L, 0.75, PLATE,
+        plates.append(rooted("Frill", base, base + d * L * 0.5 + bend, base + d * L, 0.75, PLATE,
                             flat=0.24, n=12, ring=10, power=1.15))
 # mane spikes down the back of the neck
 for i, (p, (t, side, nrm)) in enumerate(zip(NECK_PATH, frames(NECK_PATH))):
@@ -384,7 +420,9 @@ for i, (p, (t, side, nrm)) in enumerate(zip(NECK_PATH, frames(NECK_PATH))):
         base = p - nrm * (NECK_R[i][1] - 0.5) + side * sy
         d = (-nrm * 1.0 + t * 0.7 + side * 0.25 * sy).normalized()
         L = 4.4 - 1.8 * s + random.uniform(-0.4, 0.4)
-        plates.append(spike("Mane", base, base + d * L * 0.5 - t * 0.5, base + d * L, 0.6,
+        if min(base.z, (base + d * L).z) < 0.8:    # would reach down into the plinth
+            continue
+        plates.append(rooted("Mane", base, base + d * L * 0.5 - t * 0.5, base + d * L, 0.6,
                             PLATE, flat=0.25, n=10, ring=10, power=1.15))
 
 # ---------------------------------------------------------------- chin spikes
@@ -394,9 +432,11 @@ for i in range(6):
     for sy in (0.7, -0.7):
         b = base + Vector((0, sy * (1 - 0.5 * s), 0))
         L = 1.4 - 0.5 * s
-        plates.append(spike("Chin", b, b + Vector((-0.2, 0, -L * 0.6)),
+        plates.append(rooted("Chin", b, b + Vector((-0.2, 0, -L * 0.6)),
                             b + Vector((-0.7, sy * 0.2, -L)), 0.3, PLATE, flat=0.5, n=8,
                             ring=8))
+plates = [p for p in plates if p]
+EXPECTED["Plates"] = len(plates)
 join(plates, "Plates")
 
 # ---------------------------------------------------------------- belly plates
@@ -407,6 +447,8 @@ for i, (p, (t, side, nrm)) in enumerate(zip(NECK_PATH, frames(NECK_PATH))):
         continue
     b = NECK_R[i][1]
     w = NECK_R[i][0] * 0.62
+    if p.z < 1.8:                     # would reach down into the plinth
+        continue
     for sgn in (1, -1):
         c = p + nrm * (b - 0.2) + side * sgn * w * 0.45 + t * 0.35
         bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12)
@@ -416,7 +458,11 @@ for i, (p, (t, side, nrm)) in enumerate(zip(NECK_PATH, frames(NECK_PATH))):
         size = Matrix.Diagonal((1.25, w * 0.75, 0.42, 1))
         o.matrix_world = Matrix.Translation(c) @ rot @ size
         belly.append(finish(o, "BellyPlate", BELLY))
+EXPECTED["BellyPlates"] = len(belly)
 join(belly, "BellyPlates")
+# Nothing is cut to fit the plinth (booleans on these joined parts silently
+# drop pieces): parts that would reach it are simply not made, the body is cut
+# flat at z = 0 above, and validate() checks both.
 
 # ---------------------------------------------------------------- plinth
 bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=7.2, depth=1.6, location=(-4.2, 0, -0.8))
@@ -470,9 +516,123 @@ scene.render.resolution_x, scene.render.resolution_y = 1600, 1800
 scene.view_settings.view_transform = "AgX"
 scene.view_settings.look = "AgX - Medium High Contrast"
 
+# ---------------------------------------------------------------- validation
+# Hero renders hide small defects, so the geometry is checked on every build:
+#   1. every separate piece (tooth, spike, horn, plate, eye...) touches or sinks
+#      into the body: nothing floats;
+#   2. nothing but the plinth goes below the plinth top, and everything resting
+#      on it stands within its rim.
+PLINTH_C, PLINTH_R = Vector((-4.2, 0.0)), 7.2
+TOUCH = 0.02
+
+
+def world_bmesh(obj):
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    bm.transform(obj.matrix_world)
+    return bm
+
+
+def islands(bm):
+    """Connected pieces of a mesh, as lists of vertex positions."""
+    seen, out = set(), []
+    for v in bm.verts:
+        if v.index in seen:
+            continue
+        stack, part = [v], []
+        seen.add(v.index)
+        while stack:
+            cur = stack.pop()
+            part.append(cur.co.copy())
+            for e in cur.link_edges:
+                o = e.other_vert(cur)
+                if o.index not in seen:
+                    seen.add(o.index)
+                    stack.append(o)
+        out.append(part)
+    return out
+
+
+def validate():
+    _b = world_bmesh(body)
+    flesh = BVHTree.FromBMesh(_b)
+    _b.free()
+    problems, pieces = [], 0
+    for o in scene.objects:
+        if o.type != "MESH" or o is body or o.name.startswith("Plinth"):
+            continue
+        bm = world_bmesh(o)
+        parts = islands(bm)
+        if o.name in EXPECTED and len(parts) != EXPECTED[o.name]:
+            problems.append(f"{o.name}: has {len(parts)} pieces, expected {EXPECTED[o.name]}")
+        for part in parts:
+            pieces += 1
+            attached = False
+            for co in part:
+                loc, normal, _, dist = flesh.find_nearest(co)
+                if loc is not None and (dist <= TOUCH or (co - loc).dot(normal) < 0):
+                    attached = True
+                    break
+            if not attached:
+                c = sum(part, Vector()) / len(part)
+                problems.append(f"{o.name}: piece at ({c.x:.1f}, {c.y:.1f}, {c.z:.1f}) floats")
+        bm.free()
+    for o in scene.objects:
+        if o.type != "MESH" or o.name.startswith("Plinth"):
+            continue
+        bm = world_bmesh(o)
+        low = min(v.co.z for v in bm.verts)
+        if low < -1e-4:
+            problems.append(f"{o.name}: goes {-low:.2f} below the plinth top")
+        outside = [v.co for v in bm.verts
+                   if v.co.z < 0.05 and (v.co.xy - PLINTH_C).length > PLINTH_R]
+        if outside:
+            problems.append(f"{o.name}: {len(outside)} points rest beyond the plinth rim")
+        bm.free()
+    print(f"\n=== Validation: {pieces} attached pieces checked ===")
+    for p in problems:
+        print("  FAIL", p)
+    print("  PASS: nothing floats, nothing passes through the plinth" if not problems
+          else f"  {len(problems)} problem(s)")
+    return problems
+
+
+PROBLEMS = validate()
+
 if "--preview" not in ARGS:
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "dragon.blend"))
     print("Saved", os.path.join(HERE, "dragon.blend"))
+
+
+def check_closeups():
+    """Close-ups of the places hero shots hide: mouth, chin, base, back."""
+    folder = os.path.join(HERE, "check")
+    os.makedirs(folder, exist_ok=True)
+    scene.cycles.samples = 32
+    scene.render.resolution_percentage = 100
+    size = scene.render.resolution_x, scene.render.resolution_y
+    scene.render.resolution_x, scene.render.resolution_y = 900, 700
+    shots = [("mouth", (12.0, -14.0, 12.5), (9.0, 0, 12.0), 50),
+             ("chin", (16.0, -9.0, 6.0), (9.0, 0, 11.0), 45),
+             ("throat", (14.0, -20.0, 8.0), (-1.0, 0, 8.0), 40),
+             ("base_front", (8.0, -26.0, 3.0), (-4.2, 0, 0.5), 40),
+             ("base_back", (-24.0, -14.0, 4.0), (-4.2, 0, 0.5), 40),
+             ("horns_back", (-22.0, 18.0, 30.0), (-1.0, 0, 24.0), 45)]
+    keep = target.location.copy(), cam_color.location.copy(), cam_color.data.lens
+    for name, loc, look, lens in shots:
+        target.location, cam_color.location, cam_color.data.lens = look, loc, lens
+        scene.camera = cam_color
+        scene.render.filepath = os.path.join(folder, name + ".png")
+        bpy.ops.render.render(write_still=True)
+    target.location, cam_color.location, cam_color.data.lens = keep
+    scene.render.resolution_x, scene.render.resolution_y = size
+    print("Close-up check renders in", folder)
+
+
+if "--check" in ARGS:
+    check_closeups()
+    if PROBLEMS:
+        sys.exit(1)
 
 
 def ink_style():
