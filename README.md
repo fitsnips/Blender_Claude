@@ -43,14 +43,18 @@ generated output and are not committed.
    `/Applications`. Check it's there, then alias that copy:
 
    ```sh
-   ls -d ~/Library/Application\ Support/Steam/steamapps/common/Blender/Blender.app
-   echo 'alias blender="$HOME/Library/Application Support/Steam/steamapps/common/Blender/Blender.app/Contents/MacOS/Blender"' >> ~/.zshrc
+   ls -d $HOME/Library/Application\ Support/Steam/steamapps/common/Blender/Blender.app
+   printf '%s\n' 'alias blender="$HOME/Library/Application\ Support/Steam/steamapps/common/Blender/Blender.app/Contents/MacOS/Blender"' >> ~/.zshrc
    source ~/.zshrc
    blender --version
    ```
 
+   Keep the `\` before the space in `Application\ Support`: without it, the alias splits at
+   the space and `blender` fails with "no such file or directory".
+
    If `ls` can't find it (for example, your Steam library is on another drive), search for
-   it, then use the path it prints followed by `/Contents/MacOS/Blender`:
+   it, then use the path it prints followed by `/Contents/MacOS/Blender`, with a `\` before
+   every space:
 
    ```sh
    mdfind 'kMDItemFSName == "Blender.app"'
