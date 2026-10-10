@@ -12,6 +12,7 @@ generated output and are not committed.
 |---|---|
 | [castle](castle/) | A medieval castle with hollow towers, a keep, open arrow slits, walkable wall-walks and a moat. Includes a ready-to-print kit for the Bambu Lab P1S ([3MF and STLs](castle/print/)). |
 | [dragon](dragon/) | A snarling dragon-head bust with real scale relief, swept-back horns, a spiked mane and chevron belly plates. It is rendered in colour and as an ink drawing in the style of the illustration it is based on. |
+| [space_cookie_cutters](space_cookie_cutters/) | Five spaceship cookie cutters (rocket, flying saucer, shuttle, starfighter, moon lander), each with a matching stamp that embosses portholes, panel lines and canopies into the cut cookie. Ready-to-print [STLs](space_cookie_cutters/stl/) are included. |
 
 ## Requirements
 
