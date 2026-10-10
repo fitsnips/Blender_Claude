@@ -20,6 +20,67 @@ generated output and are not committed.
 - Rendering uses Cycles on the CPU, so no GPU is needed.
 - Optional: Bambu Studio, to slice the 3D-print files.
 
+## Running on macOS
+
+1. Install Blender 5.2 or later, with Homebrew or from
+   [blender.org](https://www.blender.org/download/) (pick the Apple Silicon or Intel build to
+   match your Mac):
+
+   ```sh
+   brew install --cask blender
+   ```
+
+2. Make `blender` available in Terminal. On macOS the command-line binary sits inside the app
+   bundle and isn't on your `PATH`, so add an alias:
+
+   ```sh
+   echo 'alias blender="/Applications/Blender.app/Contents/MacOS/Blender"' >> ~/.zshrc
+   source ~/.zshrc
+   blender --version
+   ```
+
+3. Clone the repository:
+
+   ```sh
+   git clone https://github.com/fitsnips/Blender_Claude.git
+   cd Blender_Claude
+   ```
+
+4. Run a project. For example, the dragon:
+
+   ```sh
+   cd dragon
+
+   # open Blender with the dragon built, ready to orbit and inspect
+   blender --python build_dragon.py
+
+   # or headless: render dragon.png and dragon_ink.png, then view them
+   blender --background --python build_dragon.py -- --render
+   open dragon.png dragon_ink.png
+
+   # validate the model and render close-ups into check/
+   blender --background --python build_dragon.py -- --check
+   open check/
+   ```
+
+   The castle works the same way from `castle/`. To print it, open the kit in Bambu Studio:
+
+   ```sh
+   open castle/print/castle_print_1-210.3mf
+   ```
+
+Tips:
+
+- In the Blender window, press Numpad 0 to look through the render camera, and press `Z` and
+  choose **Material Preview** to see colours.
+- The scripts render with Cycles on the CPU, which is fine on Apple Silicon (a few minutes for
+  a full render). In the Blender window you can switch to the GPU instead: turn on **Metal**
+  under *Preferences → System → Cycles Render Devices*, then set *Render Properties → Device*
+  to **GPU Compute**.
+- If macOS refuses to open a downloaded Blender ("Apple cannot check it for malicious
+  software"), right-click the app in Applications, choose **Open**, and confirm once. The
+  Homebrew install doesn't have this problem.
+
 ## Adding a project
 
 1. Create a directory named after the project, for example `bridge/`.
