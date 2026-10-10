@@ -39,6 +39,27 @@ generated output and are not committed.
    blender --version
    ```
 
+   **Installed Blender through Steam?** Steam keeps it in its own library folder instead of
+   `/Applications`. Check it's there, then alias that copy:
+
+   ```sh
+   ls -d ~/Library/Application\ Support/Steam/steamapps/common/Blender/Blender.app
+   echo 'alias blender="$HOME/Library/Application Support/Steam/steamapps/common/Blender/Blender.app/Contents/MacOS/Blender"' >> ~/.zshrc
+   source ~/.zshrc
+   blender --version
+   ```
+
+   If `ls` can't find it (for example, your Steam library is on another drive), search for
+   it, then use the path it prints followed by `/Contents/MacOS/Blender`:
+
+   ```sh
+   mdfind 'kMDItemFSName == "Blender.app"'
+   ```
+
+   Steam doesn't need to be running. If `blender --version` shows a version older than 5.2,
+   right-click Blender in Steam, open **Properties → Betas**, and make sure no older version
+   branch is selected.
+
 3. Clone the repository:
 
    ```sh
