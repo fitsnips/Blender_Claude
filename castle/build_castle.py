@@ -23,7 +23,20 @@ FLOOR_T = 0.25 if PRINT else 0.15
 random.seed(7)
 
 # ---------------------------------------------------------------- scene reset
-bpy.ops.wm.read_factory_settings(use_empty=True)
+def fresh_scene():
+    """Start from an empty scene. Headless, reset Blender. With a window open
+    (`blender --python ...`), a reset would tear down the window this script is
+    running in and break bpy.context, so remove the existing data instead."""
+    if bpy.app.background:
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        return
+    for coll in (bpy.data.objects, bpy.data.meshes, bpy.data.materials, bpy.data.lights,
+                 bpy.data.cameras, bpy.data.textures, bpy.data.worlds, bpy.data.curves):
+        for item in list(coll):
+            coll.remove(item)
+
+
+fresh_scene()
 scene = bpy.context.scene
 
 
